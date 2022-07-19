@@ -5,59 +5,62 @@
 
     Or run VS Code in the top level directory and just run.
  */
-import {AWS, Client, Entity, Match, Model, Table, print, dump, delay} from './utils/init'
-import { OneSchema } from '../src/index.js'
+import { AWS, Client, Entity, Match, Model, Table, print, dump, delay, isV3 } from "./utils/init";
+import { OneSchema } from "../src/index.js";
 
-jest.setTimeout(7200 * 1000)
+jest.setTimeout(7200 * 1000);
 
 //  Change with your schema
-const schema: OneSchema = {
-    version: '0.0.1',
-    indexes: {
-        primary: { hash: 'pk', sort: 'sk' },
-        gs1: { hash: 'gs1pk', sort: 'gs1sk', project: 'all' },
+const schema = {
+  version: "0.1.0",
+  format: "onetable:1.0.0",
+  indexes: {
+    primary: { hash: "pk", sort: "sk" },
+  },
+  params: {},
+  models: {
+    User: {
+      pk: { type: String, value: "${_type}" },
+      sk: { type: String, value: "${name}" },
+      name: { type: String, required: true },
+      info: {
+        type: Object,
+        required: false,
+        schema: {
+          email: { type: String, required: true },
+        },
+      },
     },
-    models: {
-        User: {
-            pk:          { type: String, value: '${_type}#' },
-            sk:          { type: String, value: '${_type}#${id}' },
+  } as const,
+};
 
-            gs1pk:       { type: String, value: '${_type}#' },
-            gs1sk:       { type: String, value: '${_type}#${id}' },
-
-            name:        { type: String },
-            email:       { type: String },
-            id:          { type: String, generate: 'ulid' },
-        }
-    }
-}
+type User = Entity<typeof schema.models.User>;
 
 //  Change your table params as required
 const table = new Table({
-    name: 'DebugTable',
-    client: Client,
-    schema,
-    logger: true,
-})
+  name: "DebugTable",
+  client: Client,
+  schema,
+  logger: true,
+});
+
+const User = table.getModel<User>("User");
 
 //  This will create a local table
-test('Create Table', async() => {
-    if (!(await table.exists())) {
-        await table.createTable()
-        expect(await table.exists()).toBe(true)
-    }
-})
+beforeAll(async () => {
+  if (!(await table.exists())) {
+    await table.createTable();
+    expect(await table.exists()).toBe(true);
+  }
+});
 
-test('Test', async() => {
-    /*
-    Put your code here
+test("Test", async () => {
+  await User.create({ name: "Alice" });
+  const lot = await User.get({ name: "Alice" });
+  expect(lot?.info).toBeUndefined();
+});
 
-    let User = table.getModel('User')
-    let users = await User.find({})
-*/
-})
-
-test('Destroy Table', async() => {
-    await table.deleteTable('DeleteTableForever')
-    expect(await table.exists()).toBe(false)
-})
+afterAll(async () => {
+  await table.deleteTable("DeleteTableForever");
+  expect(await table.exists()).toBe(false);
+});
