@@ -47,7 +47,9 @@ test('Find with next offset', async() => {
     let pages = 0, total = 0, next
     let items: any
     do {
-        items = await User.find({}, {limit: PerPage, next})
+        items = await User.find({
+            gs1pk: 'abc',
+        }, {limit: PerPage, next})
         if (items.length) {
             expect(items[0].name).toBe(`user-${zpad(total, 6)}`)
             expect(items[0].email).toBe(`email-${zpad(total, 6)}@example.com`)
